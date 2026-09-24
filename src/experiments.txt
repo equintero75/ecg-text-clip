@@ -1,0 +1,10 @@
+# One experiment per line: python src/ecgclip.py train <args>
+--name R0_orig --text v0 --multipos 0 --lr_ecg 2e-5 --lr_text 2e-6 --lr_proj 4e-5 --lr_temp 2e-5 --min_lr_frac 0.05 --epochs 5 --ckpt 1 --eval_init 0
+--name R1_fixed --text v1 --multipos 1 --lr_ecg 1e-4 --lr_text 2e-5 --lr_proj 2e-4 --lr_temp 1e-3 --epochs 5 --ckpt 1
+--name R2_report --text report --multipos 1 --lr_ecg 1e-4 --lr_text 2e-5 --lr_proj 2e-4 --lr_temp 1e-3 --epochs 5 --ckpt 1
+--name PH1 --posthoc R0_orig,R1_fixed,R2_report
+--name R3_report_lowtextlr --text report --multipos 1 --lr_ecg 1e-4 --lr_text 2e-6 --lr_proj 2e-4 --lr_temp 1e-3 --epochs 5 --ckpt 1
+--name F1_report_15ep --text report --multipos 1 --lr_ecg 1e-4 --lr_text 2e-5 --lr_proj 2e-4 --lr_temp 1e-3 --epochs 15 --ckpt 1 --full_every 5
+--name R4_report_nomultipos --text report --multipos 0 --lr_ecg 1e-4 --lr_text 2e-5 --lr_proj 2e-4 --lr_temp 1e-3 --epochs 5 --ckpt 1
+--name R2s1_report_seed1 --text report --multipos 1 --lr_ecg 1e-4 --lr_text 2e-5 --lr_proj 2e-4 --lr_temp 1e-3 --epochs 5 --ckpt 1 --seed 1
+--name PH2 --posthoc F1_report_15ep,R4_report_nomultipos,R2s1_report_seed1

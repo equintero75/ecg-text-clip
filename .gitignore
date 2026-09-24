@@ -1,0 +1,14 @@
+# datasets, caches, checkpoints
+data/ptb-xl-*/
+cache/
+runs/
+*.pt
+*.npy
+*.zip
+
+# python / jupyter
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+venv/

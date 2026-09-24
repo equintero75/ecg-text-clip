@@ -1,0 +1,11 @@
+torch>=2.1
+transformers>=4.40
+wfdb>=4.1
+numpy
+pandas
+scipy
+scikit-learn>=1.5
+matplotlib
+# only for src/translate_reports.py
+sentencepiece
+sacremoses
