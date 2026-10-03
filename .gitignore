@@ -12,3 +12,8 @@ __pycache__/
 .ipynb_checkpoints/
 .venv/
 venv/
+
+# MERL checkpoint and downloaded benchmark data
+merl_ref/ckpt/
+data/cpsc_2018/
+data/a-large-scale-*/

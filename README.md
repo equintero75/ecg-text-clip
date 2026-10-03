@@ -4,13 +4,29 @@ A CLIP-style multimodal model that aligns **12-lead ECG signals** with **clinica
 so that ECGs can be classified from plain-English descriptions (zero-shot), retrieved by text query, and used as
 pre-trained features for label-efficient downstream classification.
 
-- **ECG encoder**: ECG-FM-style CNN feature extractor + 12-layer Transformer (86 M params, trained from scratch).
-- **Text encoder**: [Bio_ClinicalBERT](https://huggingface.co/emilyalsentzer/Bio_ClinicalBERT) (108 M params, fine-tuned).
+- **ECG encoder**: 1-D ResNet18 (4 M params, from MERL; default) or an ECG-FM-style CNN + 12-layer Transformer (86 M), trained from scratch.
+- **Text encoder**: [MedCPT-Query](https://huggingface.co/ncbi/MedCPT-Query-Encoder) (default) or [Bio_ClinicalBERT](https://huggingface.co/emilyalsentzer/Bio_ClinicalBERT), fine-tuned.
 - **Objective**: symmetric InfoNCE with a learnable temperature in a shared 512-d space (multi-positive variant for identical reports).
 - **Data**: [PTB-XL 1.0.3](https://physionet.org/content/ptb-xl/1.0.3/) — 21,799 ECGs (500 Hz, 10 s), official folds (1–8 train / 9 val / 10 test).
 - **Text supervision**: the cardiologists' free-text reports, cleaned and translated to English (they are 67 % German, 3 % Swedish) — see [`data/`](data).
 
-## Headline results (PTB-XL test fold, macro AUROC over the 5 diagnostic superclasses)
+## Comparison with MERL (ICML 2024) on MERL's own benchmark — new
+
+Six tasks (PTB-XL super / sub / form / rhythm, CSN, CPSC2018), MERL's splits and released checkpoint, identical protocol
+([`src/merl_bench.py`](src/merl_bench.py)); macro AUROC averaged over the six tasks:
+
+| Model | Pre-training pairs | Zero-shot | Linear probe 1 % | 10 % | 100 % |
+|---|---|---|---|---|---|
+| MERL (released checkpoint) | ~772k MIMIC-IV-ECG | **77.4** | 74.5 | 84.4 | **88.9** |
+| **This work, v3 (ResNet18 + MedCPT fine-tuned), 2 seeds** | 17k PTB-XL | **77.0** | 74.6 | 83.7 | 88.3 |
+| This work, v2 configuration | 17k PTB-XL | 72.8 | 73.5 | 84.4 | 88.1 |
+| Untrained encoder | – | – | 65.9 | 76.1 | 82.9 |
+
+MERL-inspired changes (MedCPT text encoder, ResNet18 backbone) raise zero-shot by +4.2 to within 0.4 of MERL with ~45× less data.
+Out of domain (CSN, CPSC2018) MERL keeps a clear zero-shot lead — see **[`results/MERL_COMPARISON.md`](results/MERL_COMPARISON.md)**
+for the full tables, ablations (frozen text encoder, UMA, backbone, epochs) and caveats.
+
+## v2 results (PTB-XL test fold, macro AUROC over the 5 diagnostic superclasses)
 
 | Model | Zero-shot (no labelled ECGs) | Linear probe, 1 % labels | 10 % | 100 % |
 |---|---|---|---|---|
@@ -53,6 +69,9 @@ Evaluation
 | [`src/translate_reports.py`](src/translate_reports.py) | Report cleaning + German cardiology glossary + MarianMT translation |
 | [`src/posthoc_eval.py`](src/posthoc_eval.py), [`src/summarize.py`](src/summarize.py), [`src/make_figures.py`](src/make_figures.py) | Prompt study, results table, figures |
 | [`src/download_ptbxl.py`](src/download_ptbxl.py) | Parallel download of PTB-XL (500 Hz records) from PhysioNet's AWS open-data mirror |
+| [`src/merl_bench.py`](src/merl_bench.py), [`src/experiments_merl.txt`](src/experiments_merl.txt) | MERL benchmark (zero-shot + linear probe on 6 tasks) and the exact runs of the MERL comparison |
+| [`src/download_cpsc2018.py`](src/download_cpsc2018.py), [`src/merl_resnet1d.py`](src/merl_resnet1d.py) | CPSC2018 download; MERL's ResNet18 (MIT) |
+| [`merl_ref/`](merl_ref) | MERL's splits, CKEPE prompts and reference code (MIT licence) |
 | [`data/ptbxl_reports_en.csv`](data/ptbxl_reports_en.csv) | English translation of every PTB-XL report |
 | [`results/`](results) | Write-up, figures, per-run logs (`results.jsonl` = every evaluation, `log.txt` = training log) |
 
@@ -64,8 +83,9 @@ python src/download_ptbxl.py            # or download the zip from PhysioNet int
 ```
 
 **Notebook (Colab or lab GPU)**: open `notebooks/ECG_Multimodal.ipynb`, set `PTB_DIR`, `SAVE_DIR`, `CACHE_DIR`
-and `REPORTS_EN_CSV` in the configuration cell, run all. Defaults are the best configuration found
-(reports as text, 15 epochs, LR 1e-4 ECG / 2e-5 BERT / 2e-4 heads / 1e-3 temperature, batch 64, bf16).
+`REPORTS_EN_CSV` and `CKEPE_JSON` in the configuration cell, run all. Defaults are the best configuration on MERL's
+benchmark (ResNet18 + MedCPT fine-tuned, reports as text, 5 epochs, LR 2e-4 ECG / 2e-5 text / 2e-4 heads / 1e-3
+temperature, batch 64, bf16). Switches: `ECG_ARCH` (`resnet18` / `fm`), `TEXT_MODEL_NAME`, `FREEZE_TEXT`, `USE_UMA`.
 On GPUs with < 12 GB set `GRAD_CKPT = True`.
 
 **Scripts** (paths configurable through `PTB_DIR`, `REPORTS_EN_CSV`, `ECG_CACHE`, `RUNS_DIR`):
@@ -92,3 +112,5 @@ Hardware used for `results/`: one RTX 3060 Laptop GPU (6 GB), bf16 + gradient ch
 - Yang, K. et al. *ECG-LM: Understanding Electrocardiogram with a Large Language Model.* Health Data Science (2025), doi:10.34133/hds.0221.
 - Radford, A. et al. *Learning Transferable Visual Models From Natural Language Supervision (CLIP).* ICML 2021.
 - Alsentzer, E. et al. *Publicly Available Clinical BERT Embeddings.* Clinical NLP Workshop 2019.
+- Liu, C. et al. *Zero-Shot ECG Classification with Multimodal Learning and Test-time Clinical Knowledge Enhancement (MERL).* ICML 2024 — benchmark, splits, CKEPE prompts, ResNet18 backbone.
+- Jin, Q. et al. *MedCPT: Contrastive Pre-trained Transformers with Large-scale PubMed Search Logs.* Bioinformatics 39(11) (2023).

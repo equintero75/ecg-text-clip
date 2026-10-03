@@ -1,0 +1,24 @@
+# --- benchmark existing models on MERL's tasks ---
+$PY src/merl_bench.py eval --model ours:runs/F1_best_epoch4 --tag ours_F1_best_epoch4
+$PY src/merl_bench.py eval --model merl:merl_ref/ckpt/res18_best_ckpt.pth --tag MERL_released_res18
+$PY src/merl_bench.py eval --model random --tag random_init_ecgfm
+# --- ablations on PTB-XL (5 epochs, report text, multi-positive, R2 learning rates), each followed by the benchmark ---
+$PY src/ecgclip.py train --name A0_base_bcb_ft --text report --epochs 5 --ckpt 1 && $PY src/merl_bench.py eval --model ours:runs/A0_base_bcb_ft --tag A0_base_bcb_ft
+$PY src/ecgclip.py train --name A1_medcpt_ft --text report --text_model ncbi/MedCPT-Query-Encoder --epochs 5 --ckpt 1 && $PY src/merl_bench.py eval --model ours:runs/A1_medcpt_ft --tag A1_medcpt_ft
+$PY src/ecgclip.py train --name A2_medcpt_frozen --text report --text_model ncbi/MedCPT-Query-Encoder --freeze_text 1 --epochs 5 --ckpt 1 && $PY src/merl_bench.py eval --model ours:runs/A2_medcpt_frozen --tag A2_medcpt_frozen
+$PY src/ecgclip.py train --name A3_bcb_frozen --text report --freeze_text 1 --epochs 5 --ckpt 1 && $PY src/merl_bench.py eval --model ours:runs/A3_bcb_frozen --tag A3_bcb_frozen
+$PY src/ecgclip.py train --name A4_bcb_ft_uma --text report --uma 1 --epochs 5 --ckpt 1 && $PY src/merl_bench.py eval --model ours:runs/A4_bcb_ft_uma --tag A4_bcb_ft_uma
+$PY src/ecgclip.py train --name A5_resnet18_bcb_ft --text report --ecg_arch resnet18 --lr_ecg 2e-4 --epochs 5 --ckpt 0 && $PY src/merl_bench.py eval --model ours:runs/A5_resnet18_bcb_ft --tag A5_resnet18_bcb_ft
+# --- combination of the two zero-shot winners (decides the final run) ---
+$PY src/ecgclip.py train --name A6_resnet18_medcpt_ft --text report --text_model ncbi/MedCPT-Query-Encoder --ecg_arch resnet18 --lr_ecg 2e-4 --epochs 5 --ckpt 1 && $PY src/merl_bench.py eval --model ours:runs/A6_resnet18_medcpt_ft --tag A6_resnet18_medcpt_ft
+# --- CSN for the first three models (cache was rebuilt after a header-parsing failure) ---
+$PY src/merl_bench.py eval --model ours:runs/F1_best_epoch4 --tag ours_F1_best_epoch4 --tasks csn
+$PY src/merl_bench.py eval --model merl:merl_ref/ckpt/res18_best_ckpt.pth --tag MERL_released_res18 --tasks csn
+$PY src/merl_bench.py eval --model random --tag random_init_ecgfm --tasks csn
+# --- CPSC2018 for models benchmarked before its cache existed ---
+$PY src/merl_bench.py eval --model ours:runs/F1_best_epoch4 --tag ours_F1_best_epoch4 --tasks cpsc
+$PY src/merl_bench.py eval --model merl:merl_ref/ckpt/res18_best_ckpt.pth --tag MERL_released_res18 --tasks cpsc
+$PY src/merl_bench.py eval --model random --tag random_init_ecgfm --tasks cpsc
+$PY src/merl_bench.py eval --model ours:runs/A0_base_bcb_ft --tag A0_base_bcb_ft --tasks cpsc
+# --- seed replicate of the best configuration ---
+$PY src/ecgclip.py train --name A6s1_resnet18_medcpt_ft_seed1 --text report --text_model ncbi/MedCPT-Query-Encoder --ecg_arch resnet18 --lr_ecg 2e-4 --epochs 5 --ckpt 1 --seed 1 && $PY src/merl_bench.py eval --model ours:runs/A6s1_resnet18_medcpt_ft_seed1 --tag A6s1_resnet18_medcpt_ft_seed1

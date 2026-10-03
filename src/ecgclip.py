@@ -200,6 +200,7 @@ class ECGEncoder(nn.Module):
         self.layers = nn.ModuleList([TransformerBlock(embed_dim, heads, ff_dim, dropout) for _ in range(n_layers)])
         self.norm = nn.LayerNorm(embed_dim)
         self.grad_ckpt = False
+        self.out_dim = embed_dim
 
     def forward(self, x):
         z = self.cnn(x).transpose(1, 2)
@@ -210,6 +211,19 @@ class ECGEncoder(nn.Module):
             else:
                 c = layer(c)
         return self.norm(c).mean(1)
+
+
+class ResNetECGEncoder(nn.Module):
+    """MERL's 1-D ResNet18 (see merl_resnet1d.py) + global average pooling -> [B, 512]."""
+    def __init__(self):
+        super().__init__()
+        from merl_resnet1d import ResNet18
+        self.net = ResNet18()
+        self.out_dim = 512
+        self.grad_ckpt = False
+
+    def forward(self, x):
+        return self.net(x).mean(dim=-1)
 
 
 class ClinicalTextEncoder(nn.Module):
@@ -239,10 +253,16 @@ class ProjectionHead(nn.Module):
 
 
 class ECGTextCLIP(nn.Module):
-    def __init__(self, ecg_encoder, text_encoder, proj_dim=512, init_temp=0.07):
+    def __init__(self, ecg_encoder, text_encoder, proj_dim=512, init_temp=0.07, uma=False):
         super().__init__()
         self.ecg_encoder, self.text_encoder = ecg_encoder, text_encoder
-        self.ecg_proj = ProjectionHead(768, proj_dim)
+        self.ecg_proj = ProjectionHead(getattr(ecg_encoder, 'out_dim', 768), proj_dim)
+        if uma:
+            # MERL UMA (code version): two bias-free linear maps of the pooled ECG feature, each followed by dropout 0.1
+            d = getattr(ecg_encoder, 'out_dim', 768)
+            self.uma1 = nn.Linear(d, 256, bias=False)
+            self.uma2 = nn.Linear(d, 256, bias=False)
+            self.uma_drop = nn.Dropout(0.1)
         self.text_proj = ProjectionHead(text_encoder.embed_dim, proj_dim)
         self.log_temp = nn.Parameter(torch.tensor(math.log(init_temp), dtype=torch.float32))
 
@@ -255,6 +275,10 @@ class ECGTextCLIP(nn.Module):
 
     def encode_text(self, input_ids, attention_mask, **kwargs):
         return self.text_proj(self.text_encoder(input_ids, attention_mask))
+
+    def uma_views(self, feat):
+        return (F.normalize(self.uma_drop(self.uma1(feat)), dim=-1),
+                F.normalize(self.uma_drop(self.uma2(feat)), dim=-1))
 
 
 def clip_loss(e, t, temp, text_ids=None):
@@ -312,6 +336,14 @@ ORIG_TEMPLATES = {
 def scp_prompts(scp):
     diag = scp[scp['diagnostic'] == 1]
     return {s: [d + '.' for d in diag[diag['diagnostic_class'] == s]['description']] for s in SUPERS}
+
+
+def ckepe_prompts(split=False, classes=SUPERS):
+    """MERL's released CKEPE prompts (one comma-separated subtype list per class)."""
+    d = json.load(open(os.path.join(REPO_ROOT, 'merl_ref', 'zeroshot', 'CKEPE_prompt.json'), encoding='utf-8'))
+    if split:
+        return {c: [x.strip().lower() + '.' for x in d[c].split(',') if x.strip()] for c in classes}
+    return {c: [d[c].lower()] for c in classes}
 
 
 def zero_shot_scores(model, tok, ecg_proj, prompts, agg='mean'):
@@ -413,7 +445,7 @@ def main_train(a):
     enc = tok(texts, padding=False, truncation=True, max_length=a.max_len)['input_ids']
     P('text token len: mean', np.mean([len(x) for x in enc]).round(1), 'max', max(len(x) for x in enc))
 
-    ecg_enc = ECGEncoder(n_layers=a.ecg_layers)
+    ecg_enc = ResNetECGEncoder() if a.ecg_arch == 'resnet18' else ECGEncoder(n_layers=a.ecg_layers)
     ecg_enc.grad_ckpt = a.ckpt
     if a.ecg_init:
         sd = torch.load(a.ecg_init, map_location='cpu')
@@ -424,7 +456,7 @@ def main_train(a):
     if a.freeze_text:
         for p in txt_enc.parameters():
             p.requires_grad = False
-    model = ECGTextCLIP(ecg_enc, txt_enc, init_temp=a.temp).to(DEVICE)
+    model = ECGTextCLIP(ecg_enc, txt_enc, init_temp=a.temp, uma=bool(a.uma)).to(DEVICE)
     if not a.learn_temp:
         model.log_temp.requires_grad = False
     P('trainable params', sum(p.numel() for p in model.parameters() if p.requires_grad))
@@ -432,7 +464,8 @@ def main_train(a):
     groups = [
         {'params': [p for p in model.ecg_encoder.parameters()], 'base_lr': a.lr_ecg},
         {'params': [p for p in model.text_encoder.parameters() if p.requires_grad], 'base_lr': a.lr_text},
-        {'params': list(model.ecg_proj.parameters()) + list(model.text_proj.parameters()), 'base_lr': a.lr_proj},
+        {'params': list(model.ecg_proj.parameters()) + list(model.text_proj.parameters())
+                   + ([model.uma1.weight, model.uma2.weight] if a.uma else []), 'base_lr': a.lr_proj},
         {'params': [model.log_temp], 'base_lr': a.lr_temp, 'weight_decay': 0.0},
     ]
     groups = [g for g in groups if len(g['params']) > 0 and any(p.requires_grad for p in g['params'])]
@@ -485,8 +518,9 @@ def main_train(a):
             if proj is None:
                 fte, proj = embed_ecg(model, sig, idx)
             Ys = Y[idx]
-            for pname, prompts in [('orig', ORIG_TEMPLATES), ('scp', scp_prompts(scp))]:
-                for agg in (['mean', 'max'] if pname == 'scp' else ['mean']):
+            for pname, prompts in [('orig', ORIG_TEMPLATES), ('scp', scp_prompts(scp)),
+                                   ('ckepe', ckepe_prompts(split=False)), ('ckepesplit', ckepe_prompts(split=True))]:
+                for agg in (['mean', 'max'] if pname in ('scp', 'ckepesplit') else ['mean']):
                     S = zero_shot_scores(model, tok, proj, prompts, agg)
                     auc, per = macro_auc(Ys, S)
                     acc, f1, n = single_label_acc(Ys, S)
@@ -521,11 +555,15 @@ def main_train(a):
             x = x.to(DEVICE, non_blocking=True)
             inp, att = batch_text(ii.numpy())
             with torch.autocast('cuda', dtype=torch.bfloat16):
-                e = model.encode_ecg(x)
+                feat = model.ecg_encoder(x)
+                e = model.ecg_proj(feat)
                 t = model.encode_text(inp, att)
             e, t = e.float(), t.float()
             tid = torch.from_numpy(text_ids[tr[ii.numpy()]]).to(DEVICE) if a.multipos else None
             loss = clip_loss(e, t, model.temperature, tid)
+            if a.uma:
+                u1, u2 = model.uma_views(feat.float())
+                loss = loss + a.uma_w * clip_loss(u1, u2, torch.tensor(0.07, device=DEVICE))
             if not torch.isfinite(loss):
                 skipped += 1; opt.zero_grad(set_to_none=True); step += 1; continue
             opt.zero_grad(set_to_none=True)
@@ -542,7 +580,7 @@ def main_train(a):
         P(f'EPOCH {ep+1} train_loss {np.mean(losses):.4f} skipped {skipped} time {(time.time()-t0)/60:.1f}min')
         full = (ep + 1 == a.epochs) or (a.full_every and (ep + 1) % a.full_every == 0)
         r = evaluate(f'ep{ep+1}', full=full)
-        score = r['val_zs_scp_mean_auc']
+        score = r['val_zs_scp_max_auc']
         if score > best:
             best = score
             torch.save(model.state_dict(), os.path.join(out_dir, 'best.pt'))
@@ -584,6 +622,9 @@ if __name__ == '__main__':
     ap.add_argument('--eval_init', type=int, default=0)
     ap.add_argument('--seed', type=int, default=0)
     ap.add_argument('--posthoc', default='')
+    ap.add_argument('--ecg_arch', default='fm', choices=['fm', 'resnet18'])
+    ap.add_argument('--uma', type=int, default=0)
+    ap.add_argument('--uma_w', type=float, default=1.0)
     ap.add_argument('--exec_cmd', default='')
     a = ap.parse_args()
     if a.cmd == 'cache':
