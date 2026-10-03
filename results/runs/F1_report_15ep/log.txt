@@ -1,0 +1,117 @@
+ARGS {"cmd": "train", "name": "F1_report_15ep", "text": "report", "text_model": "emilyalsentzer/Bio_ClinicalBERT", "bs": 64, "epochs": 15, "lr_ecg": 0.0001, "lr_text": 2e-05, "lr_proj": 0.0002, "lr_temp": 0.001, "temp": 0.07, "learn_temp": 1, "multipos": 1, "wd": 0.0001, "clip": 1.0, "warmup": 1.0, "min_lr_frac": 0.02, "max_len": 128, "freeze_text": 0, "freeze_text_layers": 0, "ecg_layers": 12, "ecg_init": "", "ckpt": 1, "ram": 1, "train_frac": 1.0, "max_steps": 0, "full_every": 5, "eval_init": 0, "seed": 0, "posthoc": "", "exec_cmd": ""}
+unique texts 9112 | example: sinus rhythm. low voltage in limb leads. || sinus arrhythmia. otherwise normal ecg.
+train 17418 val 2183 test 2198 | label counts (all): {'NORM': np.int64(9514), 'MI': np.int64(5469), 'STTC': np.int64(5235), 'CD': np.int64(4898), 'HYP': np.int64(2649)}
+text token len: mean 28.1 max 128
+trainable params 196263425
+ep 1 step 50/4080 loss 4.0123 temp 0.0700 gn 12.99 lr_ecg 1.80e-05 1.40s/it mem 4.53GB
+ep 1 step 100/4080 loss 3.6860 temp 0.0701 gn 9.95 lr_ecg 3.64e-05 1.39s/it mem 4.66GB
+ep 1 step 150/4080 loss 3.4373 temp 0.0704 gn 11.30 lr_ecg 5.48e-05 1.40s/it mem 4.67GB
+ep 1 step 200/4080 loss 3.2308 temp 0.0708 gn 16.60 lr_ecg 7.32e-05 1.40s/it mem 4.67GB
+ep 1 step 250/4080 loss 3.0796 temp 0.0713 gn 8.92 lr_ecg 9.15e-05 1.40s/it mem 4.67GB
+EPOCH 1 train_loss 3.4524 skipped 0 time 6.3min
+EVAL {"tag": "ep1", "val_clip_loss": 3.2404, "val_e2t_R@1": 0.0142, "val_e2t_R@5": 0.0747, "val_zs_orig_mean_auc": 0.7677, "val_zs_orig_mean_acc1": 0.6206, "val_zs_orig_mean_f1": 0.4488, "val_zs_scp_mean_auc": 0.7168, "val_zs_scp_mean_acc1": 0.518, "val_zs_scp_mean_f1": 0.4041, "val_zs_scp_max_auc": 0.7547, "val_zs_scp_max_acc1": 0.4068, "val_zs_scp_max_f1": 0.3761, "eval_sec": 22.6}
+ep 2 step 300/4080 loss 2.9749 temp 0.0721 gn 8.76 lr_ecg 1.00e-04 1.38s/it mem 4.67GB
+ep 2 step 350/4080 loss 2.9007 temp 0.0725 gn 13.81 lr_ecg 9.99e-05 1.36s/it mem 4.67GB
+ep 2 step 400/4080 loss 2.7632 temp 0.0728 gn 9.15 lr_ecg 9.97e-05 1.36s/it mem 4.67GB
+ep 2 step 450/4080 loss 2.8366 temp 0.0737 gn 7.07 lr_ecg 9.95e-05 1.36s/it mem 4.67GB
+ep 2 step 500/4080 loss 2.7275 temp 0.0737 gn 6.81 lr_ecg 9.91e-05 1.35s/it mem 4.67GB
+EPOCH 2 train_loss 2.7902 skipped 0 time 6.1min
+EVAL {"tag": "ep2", "val_clip_loss": 2.9663, "val_e2t_R@1": 0.0165, "val_e2t_R@5": 0.0687, "val_zs_orig_mean_auc": 0.7349, "val_zs_orig_mean_acc1": 0.6335, "val_zs_orig_mean_f1": 0.4574, "val_zs_scp_mean_auc": 0.7113, "val_zs_scp_mean_acc1": 0.5455, "val_zs_scp_mean_f1": 0.4404, "val_zs_scp_max_auc": 0.7429, "val_zs_scp_max_acc1": 0.4337, "val_zs_scp_max_f1": 0.3865, "eval_sec": 25.4}
+ep 3 step 550/4080 loss 2.6633 temp 0.0737 gn 7.75 lr_ecg 9.87e-05 1.37s/it mem 4.67GB
+ep 3 step 600/4080 loss 2.4719 temp 0.0727 gn 10.37 lr_ecg 9.82e-05 1.36s/it mem 4.67GB
+ep 3 step 650/4080 loss 2.5003 temp 0.0727 gn 6.72 lr_ecg 9.76e-05 1.35s/it mem 4.67GB
+ep 3 step 700/4080 loss 2.4199 temp 0.0721 gn 7.75 lr_ecg 9.69e-05 1.35s/it mem 4.67GB
+ep 3 step 750/4080 loss 2.3887 temp 0.0720 gn 8.09 lr_ecg 9.62e-05 1.35s/it mem 4.67GB
+ep 3 step 800/4080 loss 2.3861 temp 0.0721 gn 5.12 lr_ecg 9.53e-05 1.35s/it mem 4.67GB
+EPOCH 3 train_loss 2.4326 skipped 0 time 6.1min
+EVAL {"tag": "ep3", "val_clip_loss": 2.6317, "val_e2t_R@1": 0.0234, "val_e2t_R@5": 0.1081, "val_zs_orig_mean_auc": 0.7372, "val_zs_orig_mean_acc1": 0.653, "val_zs_orig_mean_f1": 0.4761, "val_zs_scp_mean_auc": 0.7427, "val_zs_scp_mean_acc1": 0.6084, "val_zs_scp_mean_f1": 0.4618, "val_zs_scp_max_auc": 0.7701, "val_zs_scp_max_acc1": 0.5223, "val_zs_scp_max_f1": 0.4313, "eval_sec": 22.2}
+ep 4 step 850/4080 loss 2.2268 temp 0.0714 gn 9.40 lr_ecg 9.44e-05 1.35s/it mem 4.67GB
+ep 4 step 900/4080 loss 2.2004 temp 0.0705 gn 8.21 lr_ecg 9.35e-05 1.35s/it mem 4.67GB
+ep 4 step 950/4080 loss 2.1415 temp 0.0698 gn 9.36 lr_ecg 9.24e-05 1.35s/it mem 4.67GB
+ep 4 step 1000/4080 loss 2.1567 temp 0.0693 gn 10.07 lr_ecg 9.13e-05 1.35s/it mem 4.67GB
+ep 4 step 1050/4080 loss 2.1590 temp 0.0690 gn 7.09 lr_ecg 9.01e-05 1.35s/it mem 4.67GB
+EPOCH 4 train_loss 2.1682 skipped 0 time 6.1min
+EVAL {"tag": "ep4", "val_clip_loss": 2.4529, "val_e2t_R@1": 0.0408, "val_e2t_R@5": 0.1654, "val_zs_orig_mean_auc": 0.7694, "val_zs_orig_mean_acc1": 0.6921, "val_zs_orig_mean_f1": 0.485, "val_zs_scp_mean_auc": 0.8032, "val_zs_scp_mean_acc1": 0.6976, "val_zs_scp_mean_f1": 0.4974, "val_zs_scp_max_auc": 0.8248, "val_zs_scp_max_acc1": 0.6133, "val_zs_scp_max_f1": 0.4827, "eval_sec": 21.1}
+ep 5 step 1100/4080 loss 2.1447 temp 0.0683 gn 6.95 lr_ecg 8.88e-05 1.35s/it mem 4.67GB
+ep 5 step 1150/4080 loss 1.9962 temp 0.0671 gn 8.28 lr_ecg 8.75e-05 1.36s/it mem 4.67GB
+ep 5 step 1200/4080 loss 2.0335 temp 0.0666 gn 9.85 lr_ecg 8.61e-05 1.35s/it mem 4.67GB
+ep 5 step 1250/4080 loss 2.0271 temp 0.0662 gn 7.97 lr_ecg 8.46e-05 1.35s/it mem 4.67GB
+ep 5 step 1300/4080 loss 1.9525 temp 0.0652 gn 7.62 lr_ecg 8.31e-05 1.35s/it mem 4.67GB
+ep 5 step 1350/4080 loss 1.9998 temp 0.0647 gn 7.57 lr_ecg 8.15e-05 1.35s/it mem 4.67GB
+EPOCH 5 train_loss 2.0091 skipped 0 time 6.1min
+EVAL {"tag": "ep5", "val_clip_loss": 2.3974, "val_e2t_R@1": 0.0463, "val_e2t_R@5": 0.1654, "val_zs_orig_mean_auc": 0.7332, "val_zs_orig_mean_acc1": 0.6591, "val_zs_orig_mean_f1": 0.4532, "val_zs_scp_mean_auc": 0.7717, "val_zs_scp_mean_acc1": 0.661, "val_zs_scp_mean_f1": 0.4674, "val_zs_scp_max_auc": 0.794, "val_zs_scp_max_acc1": 0.5614, "val_zs_scp_max_f1": 0.475, "test_zs_orig_mean_auc": 0.7349, "test_zs_orig_mean_acc1": 0.6709, "test_zs_orig_mean_f1": 0.4526, "test_zs_orig_mean_per_class_auc": [0.817, 0.6466, 0.8178, 0.7628, 0.6305], "test_zs_scp_mean_auc": 0.7573, "test_zs_scp_mean_acc1": 0.68, "test_zs_scp_mean_f1": 0.4827, "test_zs_scp_mean_per_class_auc": [0.8902, 0.6867, 0.8031, 0.7634, 0.643], "test_zs_scp_max_auc": 0.7836, "test_zs_scp_max_acc1": 0.5703, "test_zs_scp_max_f1": 0.4734, "test_zs_scp_max_per_class_auc": [0.8902, 0.7497, 0.8153, 0.8255, 0.6372], "linear_probe": {"0.01": {"val_auc": 0.8745, "test_auc": 0.869, "C": 0.1, "per_class": [0.9296, 0.8872, 0.9156, 0.8656, 0.7468]}, "0.1": {"val_auc": 0.8909, "test_auc": 0.8876, "C": 0.1, "per_class": [0.9367, 0.8983, 0.9208, 0.899, 0.7832]}, "1.0": {"val_auc": 0.9047, "test_auc": 0.8981, "C": 1.0, "per_class": [0.9389, 0.9109, 0.9229, 0.9105, 0.8072]}}, "eval_sec": 216.0}
+ep 6 step 1400/4080 loss 1.9066 temp 0.0640 gn 6.51 lr_ecg 7.99e-05 1.36s/it mem 4.67GB
+ep 6 step 1450/4080 loss 1.8401 temp 0.0631 gn 6.33 lr_ecg 7.82e-05 1.36s/it mem 4.67GB
+ep 6 step 1500/4080 loss 1.8860 temp 0.0625 gn 9.14 lr_ecg 7.65e-05 1.35s/it mem 4.67GB
+ep 6 step 1550/4080 loss 1.8794 temp 0.0619 gn 9.84 lr_ecg 7.47e-05 1.35s/it mem 4.67GB
+ep 6 step 1600/4080 loss 1.8500 temp 0.0611 gn 8.95 lr_ecg 7.29e-05 1.35s/it mem 4.67GB
+EPOCH 6 train_loss 1.8671 skipped 0 time 6.1min
+EVAL {"tag": "ep6", "val_clip_loss": 2.3041, "val_e2t_R@1": 0.0513, "val_e2t_R@5": 0.1984, "val_zs_orig_mean_auc": 0.7505, "val_zs_orig_mean_acc1": 0.6799, "val_zs_orig_mean_f1": 0.4564, "val_zs_scp_mean_auc": 0.7571, "val_zs_scp_mean_acc1": 0.6628, "val_zs_scp_mean_f1": 0.4652, "val_zs_scp_max_auc": 0.7787, "val_zs_scp_max_acc1": 0.5492, "val_zs_scp_max_f1": 0.4605, "eval_sec": 21.0}
+ep 7 step 1650/4080 loss 1.8793 temp 0.0608 gn 7.47 lr_ecg 7.11e-05 1.34s/it mem 4.67GB
+ep 7 step 1700/4080 loss 1.7587 temp 0.0598 gn 6.67 lr_ecg 6.92e-05 1.35s/it mem 4.67GB
+ep 7 step 1750/4080 loss 1.7014 temp 0.0592 gn 8.16 lr_ecg 6.73e-05 1.35s/it mem 4.67GB
+ep 7 step 1800/4080 loss 1.7528 temp 0.0586 gn 10.51 lr_ecg 6.53e-05 1.35s/it mem 4.67GB
+ep 7 step 1850/4080 loss 1.7373 temp 0.0582 gn 10.14 lr_ecg 6.33e-05 1.35s/it mem 4.67GB
+ep 7 step 1900/4080 loss 1.7161 temp 0.0578 gn 6.48 lr_ecg 6.13e-05 1.35s/it mem 4.67GB
+EPOCH 7 train_loss 1.7438 skipped 0 time 6.1min
+EVAL {"tag": "ep7", "val_clip_loss": 2.3321, "val_e2t_R@1": 0.0655, "val_e2t_R@5": 0.2158, "val_zs_orig_mean_auc": 0.7432, "val_zs_orig_mean_acc1": 0.6799, "val_zs_orig_mean_f1": 0.4748, "val_zs_scp_mean_auc": 0.7773, "val_zs_scp_mean_acc1": 0.6768, "val_zs_scp_mean_f1": 0.4717, "val_zs_scp_max_auc": 0.8105, "val_zs_scp_max_acc1": 0.6054, "val_zs_scp_max_f1": 0.4915, "eval_sec": 20.8}
+ep 8 step 1950/4080 loss 1.5883 temp 0.0568 gn 7.56 lr_ecg 5.93e-05 1.35s/it mem 4.67GB
+ep 8 step 2000/4080 loss 1.6569 temp 0.0563 gn 7.76 lr_ecg 5.73e-05 1.34s/it mem 4.67GB
+ep 8 step 2050/4080 loss 1.6944 temp 0.0560 gn 9.35 lr_ecg 5.52e-05 1.35s/it mem 4.67GB
+ep 8 step 2100/4080 loss 1.6309 temp 0.0557 gn 7.09 lr_ecg 5.32e-05 1.35s/it mem 4.67GB
+ep 8 step 2150/4080 loss 1.6399 temp 0.0553 gn 8.30 lr_ecg 5.11e-05 1.35s/it mem 4.67GB
+EPOCH 8 train_loss 1.6475 skipped 0 time 6.1min
+EVAL {"tag": "ep8", "val_clip_loss": 2.3002, "val_e2t_R@1": 0.0637, "val_e2t_R@5": 0.2071, "val_zs_orig_mean_auc": 0.7448, "val_zs_orig_mean_acc1": 0.6671, "val_zs_orig_mean_f1": 0.4614, "val_zs_scp_mean_auc": 0.7609, "val_zs_scp_mean_acc1": 0.6463, "val_zs_scp_mean_f1": 0.4468, "val_zs_scp_max_auc": 0.7843, "val_zs_scp_max_acc1": 0.5602, "val_zs_scp_max_f1": 0.4745, "eval_sec": 20.9}
+ep 9 step 2200/4080 loss 1.6160 temp 0.0549 gn 9.44 lr_ecg 4.91e-05 1.33s/it mem 4.67GB
+ep 9 step 2250/4080 loss 1.5514 temp 0.0542 gn 8.21 lr_ecg 4.70e-05 1.34s/it mem 4.67GB
+ep 9 step 2300/4080 loss 1.5597 temp 0.0537 gn 7.04 lr_ecg 4.49e-05 1.35s/it mem 4.67GB
+ep 9 step 2350/4080 loss 1.5824 temp 0.0534 gn 6.77 lr_ecg 4.29e-05 1.35s/it mem 4.67GB
+ep 9 step 2400/4080 loss 1.5714 temp 0.0531 gn 10.29 lr_ecg 4.09e-05 1.35s/it mem 4.67GB
+EPOCH 9 train_loss 1.5601 skipped 0 time 6.1min
+EVAL {"tag": "ep9", "val_clip_loss": 2.2444, "val_e2t_R@1": 0.0779, "val_e2t_R@5": 0.2519, "val_zs_orig_mean_auc": 0.7148, "val_zs_orig_mean_acc1": 0.6677, "val_zs_orig_mean_f1": 0.4525, "val_zs_scp_mean_auc": 0.7407, "val_zs_scp_mean_acc1": 0.6744, "val_zs_scp_mean_f1": 0.4801, "val_zs_scp_max_auc": 0.7743, "val_zs_scp_max_acc1": 0.5706, "val_zs_scp_max_f1": 0.4882, "eval_sec": 21.3}
+ep 10 step 2450/4080 loss 1.2451 temp 0.0527 gn 6.71 lr_ecg 3.88e-05 1.38s/it mem 4.67GB
+ep 10 step 2500/4080 loss 1.4978 temp 0.0523 gn 7.61 lr_ecg 3.68e-05 1.34s/it mem 4.67GB
+ep 10 step 2550/4080 loss 1.4503 temp 0.0519 gn 8.39 lr_ecg 3.49e-05 1.34s/it mem 4.67GB
+ep 10 step 2600/4080 loss 1.4989 temp 0.0516 gn 6.65 lr_ecg 3.29e-05 1.34s/it mem 4.67GB
+ep 10 step 2650/4080 loss 1.4862 temp 0.0513 gn 7.32 lr_ecg 3.10e-05 1.35s/it mem 4.67GB
+ep 10 step 2700/4080 loss 1.4841 temp 0.0511 gn 11.48 lr_ecg 2.91e-05 1.35s/it mem 4.67GB
+EPOCH 10 train_loss 1.4812 skipped 0 time 6.1min
+EVAL {"tag": "ep10", "val_clip_loss": 2.2537, "val_e2t_R@1": 0.0683, "val_e2t_R@5": 0.2355, "val_zs_orig_mean_auc": 0.7347, "val_zs_orig_mean_acc1": 0.6799, "val_zs_orig_mean_f1": 0.4595, "val_zs_scp_mean_auc": 0.7599, "val_zs_scp_mean_acc1": 0.661, "val_zs_scp_mean_f1": 0.4426, "val_zs_scp_max_auc": 0.7868, "val_zs_scp_max_acc1": 0.5767, "val_zs_scp_max_f1": 0.4767, "test_zs_orig_mean_auc": 0.7388, "test_zs_orig_mean_acc1": 0.6818, "test_zs_orig_mean_f1": 0.4533, "test_zs_orig_mean_per_class_auc": [0.8602, 0.7032, 0.8187, 0.706, 0.6057], "test_zs_scp_mean_auc": 0.7383, "test_zs_scp_mean_acc1": 0.6612, "test_zs_scp_mean_f1": 0.434, "test_zs_scp_mean_per_class_auc": [0.8962, 0.7141, 0.7772, 0.6816, 0.6222], "test_zs_scp_max_auc": 0.7729, "test_zs_scp_max_acc1": 0.5727, "test_zs_scp_max_f1": 0.4542, "test_zs_scp_max_per_class_auc": [0.8962, 0.7992, 0.7764, 0.7762, 0.6166], "linear_probe": {"0.01": {"val_auc": 0.8807, "test_auc": 0.8734, "C": 0.1, "per_class": [0.9362, 0.8904, 0.9168, 0.8637, 0.76]}, "0.1": {"val_auc": 0.8935, "test_auc": 0.8904, "C": 0.1, "per_class": [0.9396, 0.9039, 0.9206, 0.8964, 0.7915]}, "1.0": {"val_auc": 0.9075, "test_auc": 0.9016, "C": 0.1, "per_class": [0.9423, 0.9182, 0.9253, 0.9096, 0.8126]}}, "eval_sec": 309.7}
+ep 11 step 2750/4080 loss 1.4507 temp 0.0506 gn 6.20 lr_ecg 2.72e-05 1.36s/it mem 4.67GB
+ep 11 step 2800/4080 loss 1.3971 temp 0.0503 gn 8.03 lr_ecg 2.54e-05 1.35s/it mem 4.67GB
+ep 11 step 2850/4080 loss 1.4242 temp 0.0501 gn 9.28 lr_ecg 2.36e-05 1.35s/it mem 4.67GB
+ep 11 step 2900/4080 loss 1.3841 temp 0.0498 gn 9.51 lr_ecg 2.19e-05 1.35s/it mem 4.67GB
+ep 11 step 2950/4080 loss 1.3860 temp 0.0496 gn 7.13 lr_ecg 2.02e-05 1.35s/it mem 4.67GB
+EPOCH 11 train_loss 1.4060 skipped 0 time 6.1min
+EVAL {"tag": "ep11", "val_clip_loss": 2.2696, "val_e2t_R@1": 0.0825, "val_e2t_R@5": 0.2501, "val_zs_orig_mean_auc": 0.7238, "val_zs_orig_mean_acc1": 0.6652, "val_zs_orig_mean_f1": 0.4445, "val_zs_scp_mean_auc": 0.768, "val_zs_scp_mean_acc1": 0.6732, "val_zs_scp_mean_f1": 0.4562, "val_zs_scp_max_auc": 0.7937, "val_zs_scp_max_acc1": 0.606, "val_zs_scp_max_f1": 0.4959, "eval_sec": 20.9}
+ep 12 step 3000/4080 loss 1.3733 temp 0.0494 gn 9.15 lr_ecg 1.86e-05 1.36s/it mem 4.67GB
+ep 12 step 3050/4080 loss 1.3463 temp 0.0491 gn 7.89 lr_ecg 1.70e-05 1.34s/it mem 4.67GB
+ep 12 step 3100/4080 loss 1.3347 temp 0.0489 gn 7.28 lr_ecg 1.55e-05 1.34s/it mem 4.67GB
+ep 12 step 3150/4080 loss 1.3482 temp 0.0487 gn 8.42 lr_ecg 1.40e-05 1.35s/it mem 4.67GB
+ep 12 step 3200/4080 loss 1.3479 temp 0.0485 gn 7.01 lr_ecg 1.26e-05 1.35s/it mem 4.67GB
+ep 12 step 3250/4080 loss 1.3419 temp 0.0484 gn 7.63 lr_ecg 1.13e-05 1.35s/it mem 4.67GB
+EPOCH 12 train_loss 1.3437 skipped 0 time 6.1min
+EVAL {"tag": "ep12", "val_clip_loss": 2.2727, "val_e2t_R@1": 0.0756, "val_e2t_R@5": 0.2574, "val_zs_orig_mean_auc": 0.7291, "val_zs_orig_mean_acc1": 0.6775, "val_zs_orig_mean_f1": 0.4578, "val_zs_scp_mean_auc": 0.7563, "val_zs_scp_mean_acc1": 0.6616, "val_zs_scp_mean_f1": 0.4476, "val_zs_scp_max_auc": 0.7895, "val_zs_scp_max_acc1": 0.5883, "val_zs_scp_max_f1": 0.4927, "eval_sec": 22.1}
+ep 13 step 3300/4080 loss 1.3033 temp 0.0483 gn 8.29 lr_ecg 1.00e-05 1.36s/it mem 4.67GB
+ep 13 step 3350/4080 loss 1.3112 temp 0.0481 gn 8.25 lr_ecg 8.82e-06 1.35s/it mem 4.67GB
+ep 13 step 3400/4080 loss 1.3099 temp 0.0480 gn 8.55 lr_ecg 7.69e-06 1.35s/it mem 4.67GB
+ep 13 step 3450/4080 loss 1.3456 temp 0.0480 gn 9.62 lr_ecg 6.62e-06 1.34s/it mem 4.67GB
+ep 13 step 3500/4080 loss 1.2585 temp 0.0479 gn 6.91 lr_ecg 5.63e-06 1.35s/it mem 4.67GB
+EPOCH 13 train_loss 1.3071 skipped 0 time 6.1min
+EVAL {"tag": "ep13", "val_clip_loss": 2.2499, "val_e2t_R@1": 0.0797, "val_e2t_R@5": 0.2602, "val_zs_orig_mean_auc": 0.731, "val_zs_orig_mean_acc1": 0.675, "val_zs_orig_mean_f1": 0.4599, "val_zs_scp_mean_auc": 0.7635, "val_zs_scp_mean_acc1": 0.6707, "val_zs_scp_mean_f1": 0.4596, "val_zs_scp_max_auc": 0.7939, "val_zs_scp_max_acc1": 0.587, "val_zs_scp_max_f1": 0.4916, "eval_sec": 21.0}
+ep 14 step 3550/4080 loss 1.3136 temp 0.0478 gn 7.88 lr_ecg 4.72e-06 1.34s/it mem 4.67GB
+ep 14 step 3600/4080 loss 1.2736 temp 0.0477 gn 7.39 lr_ecg 3.89e-06 1.36s/it mem 4.67GB
+ep 14 step 3650/4080 loss 1.2598 temp 0.0477 gn 7.45 lr_ecg 3.13e-06 1.35s/it mem 4.67GB
+ep 14 step 3700/4080 loss 1.2349 temp 0.0476 gn 7.42 lr_ecg 2.45e-06 1.35s/it mem 4.67GB
+ep 14 step 3750/4080 loss 1.2736 temp 0.0476 gn 10.01 lr_ecg 2.00e-06 1.35s/it mem 4.67GB
+ep 14 step 3800/4080 loss 1.2748 temp 0.0475 gn 8.21 lr_ecg 2.00e-06 1.35s/it mem 4.67GB
+EPOCH 14 train_loss 1.2661 skipped 0 time 6.1min
+EVAL {"tag": "ep14", "val_clip_loss": 2.2659, "val_e2t_R@1": 0.0852, "val_e2t_R@5": 0.262, "val_zs_orig_mean_auc": 0.7391, "val_zs_orig_mean_acc1": 0.6707, "val_zs_orig_mean_f1": 0.4534, "val_zs_scp_mean_auc": 0.7709, "val_zs_scp_mean_acc1": 0.6695, "val_zs_scp_mean_f1": 0.465, "val_zs_scp_max_auc": 0.7963, "val_zs_scp_max_acc1": 0.5889, "val_zs_scp_max_f1": 0.496, "eval_sec": 21.0}
+ep 15 step 3850/4080 loss 1.2432 temp 0.0475 gn 7.96 lr_ecg 2.00e-06 1.35s/it mem 4.67GB
+ep 15 step 3900/4080 loss 1.2807 temp 0.0475 gn 6.72 lr_ecg 2.00e-06 1.35s/it mem 4.67GB
+ep 15 step 3950/4080 loss 1.2549 temp 0.0474 gn 8.16 lr_ecg 2.00e-06 1.35s/it mem 4.67GB
+ep 15 step 4000/4080 loss 1.2312 temp 0.0474 gn 7.29 lr_ecg 2.00e-06 1.35s/it mem 4.67GB
+ep 15 step 4050/4080 loss 1.2593 temp 0.0474 gn 9.70 lr_ecg 2.00e-06 1.35s/it mem 4.67GB
+EPOCH 15 train_loss 1.2578 skipped 0 time 6.1min
+EVAL {"tag": "ep15", "val_clip_loss": 2.2776, "val_e2t_R@1": 0.0847, "val_e2t_R@5": 0.2611, "val_zs_orig_mean_auc": 0.7384, "val_zs_orig_mean_acc1": 0.675, "val_zs_orig_mean_f1": 0.4579, "val_zs_scp_mean_auc": 0.768, "val_zs_scp_mean_acc1": 0.6695, "val_zs_scp_mean_f1": 0.4673, "val_zs_scp_max_auc": 0.794, "val_zs_scp_max_acc1": 0.5773, "val_zs_scp_max_f1": 0.4908, "test_zs_orig_mean_auc": 0.7443, "test_zs_orig_mean_acc1": 0.6891, "test_zs_orig_mean_f1": 0.4666, "test_zs_orig_mean_per_class_auc": [0.8687, 0.7099, 0.8316, 0.7059, 0.6053], "test_zs_scp_mean_auc": 0.7466, "test_zs_scp_mean_acc1": 0.6636, "test_zs_scp_mean_f1": 0.4425, "test_zs_scp_mean_per_class_auc": [0.899, 0.7355, 0.7952, 0.6895, 0.614], "test_zs_scp_max_auc": 0.7803, "test_zs_scp_max_acc1": 0.5879, "test_zs_scp_max_f1": 0.4867, "test_zs_scp_max_per_class_auc": [0.899, 0.8112, 0.7823, 0.7861, 0.623], "linear_probe": {"0.01": {"val_auc": 0.8809, "test_auc": 0.8739, "C": 0.1, "per_class": [0.9379, 0.8906, 0.9144, 0.8694, 0.7573]}, "0.1": {"val_auc": 0.8936, "test_auc": 0.8905, "C": 0.1, "per_class": [0.9407, 0.9028, 0.9196, 0.8971, 0.7925]}, "1.0": {"val_auc": 0.9075, "test_auc": 0.9022, "C": 0.1, "per_class": [0.9433, 0.9183, 0.9254, 0.9111, 0.8128]}}, "eval_sec": 213.3}
+DONE total 108.8min best val_zs_scp_mean_auc 0.8032

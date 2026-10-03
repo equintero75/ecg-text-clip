@@ -1,7 +1,7 @@
 # datasets, caches, checkpoints
 data/ptb-xl-*/
-cache/
-runs/
+/cache/
+/runs/
 *.pt
 *.npy
 *.zip
