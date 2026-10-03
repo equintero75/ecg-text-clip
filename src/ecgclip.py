@@ -121,12 +121,15 @@ def build_texts(df, scp, version):
 
 class ECGSet(torch.utils.data.Dataset):
     def __init__(self, sig, idx, train):
+        # sig: array in RAM / memmap, or a path to a .npy file opened lazily as a memmap in each worker
         self.sig, self.idx, self.train = sig, idx, train
 
     def __len__(self):
         return len(self.idx)
 
     def __getitem__(self, i):
+        if isinstance(self.sig, str):
+            self.sig = np.load(self.sig, mmap_mode='r')
         j = self.idx[i]
         x = self.sig[j]
         if self.train:
@@ -401,6 +404,37 @@ def linear_probe(Xtr, Ytr, Xva, Yva, Xte, Yte, fracs=(0.01, 0.1, 1.0), seed=0):
     return res
 
 
+_MERL_VAL = {}
+
+
+@torch.no_grad()
+def merl_val_zero_shot(model, tok, tasks):
+    """Zero-shot macro AUROC (MERL's CKEPE prompts) on the VALIDATION split of MERL's benchmark tasks, averaged.
+    Needs the caches built by `python src/merl_bench.py cache`."""
+    import merl_bench as MB
+    ad = MB.OursAdapter.__new__(MB.OursAdapter)
+    ad.model, ad.tok, ad.zero_shot = model, tok, True
+    model.eval()
+    res = {}
+    for task in tasks:
+        if task not in _MERL_VAL:
+            try:
+                D = MB.TaskData(task)
+            except (FileNotFoundError, KeyError) as ex:   # benchmark cache missing for this dataset -> skip it
+                print(f'[merl_val] skipping {task}: {ex}', flush=True)
+                _MERL_VAL[task] = None
+                continue
+            prompts = MB.prompt_sets(task, D.labels)['ckepe']
+            _MERL_VAL[task] = (D, np.asarray(D.parts['val'][0]), D.parts['val'][1], prompts)
+        if _MERL_VAL[task] is None:
+            continue
+        D, idx, y, prompts = _MERL_VAL[task]
+        _, P = ad.embed(D.raw, idx, D.valid)
+        S = torch.stack([P @ ad.text(prompts[l]).mean(0) for l in D.labels], 1).numpy()
+        res[task] = round(MB.macro_auc(y, S), 2)
+    return float(np.mean(list(res.values()))), res
+
+
 # ───────────────────────────── train ─────────────────────────────
 def main_train(a):
     if a.exec_cmd:
@@ -421,29 +455,45 @@ def main_train(a):
         print(msg, flush=True); log.write(msg + '\n'); log.flush()
 
     P('ARGS', json.dumps(vars(a)))
-    df, scp = load_meta()
-    sig = np.load(os.path.join(CACHE, 'sig500.npy'), mmap_mode='r')
-    if a.ram:
-        sig = np.ascontiguousarray(sig)  # ~2.6 GB in RAM
-    bad = np.load(os.path.join(CACHE, 'bad.npy'))
-    Y = superclass_labels(df, scp)
-    texts = build_texts(df, scp, a.text)
-    text_ids = pd.factorize(pd.Series(texts))[0]
-    P('unique texts', text_ids.max() + 1, '| example:', texts[0], '||', texts[10])
-
-    fold = df['strat_fold'].values
-    tr = np.where((fold <= 8) & ~bad)[0]
-    va = np.where((fold == 9) & ~bad)[0]
-    te = np.where((fold == 10) & ~bad)[0]
-    if a.train_frac < 1:
-        tr = np.random.RandomState(0).choice(tr, int(len(tr) * a.train_frac), replace=False)
-    lab = Y.sum(1) > 0
-    P(f'train {len(tr)} val {len(va)} test {len(te)} | label counts (all):', dict(zip(SUPERS, Y.sum(0).astype(int))))
+    if a.dataset == 'mimic':
+        # prepared by src/prepare_mimic.py: sig.npy (memmap, never loaded into RAM) + meta.csv
+        meta = pd.read_csv(os.path.join(a.mimic_dir, 'meta.csv'))
+        texts = meta['text'].astype(str).tolist()
+        sig_src = os.path.join(a.mimic_dir, 'sig.npy')
+        sig = np.load(sig_src, mmap_mode='r')
+        ok = ~meta['bad'].values.astype(bool)
+        tr = np.where((meta['split'] == 'train').values & ok)[0]
+        va = np.where((meta['split'] == 'val').values & ok)[0]
+        if len(va) > a.val_max:
+            va = np.sort(np.random.RandomState(0).choice(va, a.val_max, replace=False))
+        te, Y, scp = va, None, None
+        if a.train_frac < 1:
+            tr = np.random.RandomState(0).choice(tr, int(len(tr) * a.train_frac), replace=False)
+        P(f'MIMIC-IV-ECG: train {len(tr)} | val {len(va)} (patient-level split) | bad excluded {int((~ok).sum())}')
+    else:
+        df, scp = load_meta()
+        sig = np.load(os.path.join(CACHE, 'sig500.npy'), mmap_mode='r')
+        if a.ram:
+            sig = np.ascontiguousarray(sig)  # ~2.6 GB in RAM
+        sig_src = sig
+        bad = np.load(os.path.join(CACHE, 'bad.npy'))
+        Y = superclass_labels(df, scp)
+        texts = build_texts(df, scp, a.text)
+        fold = df['strat_fold'].values
+        tr = np.where((fold <= 8) & ~bad)[0]
+        va = np.where((fold == 9) & ~bad)[0]
+        te = np.where((fold == 10) & ~bad)[0]
+        if a.train_frac < 1:
+            tr = np.random.RandomState(0).choice(tr, int(len(tr) * a.train_frac), replace=False)
+        P(f'train {len(tr)} val {len(va)} test {len(te)} | label counts (all):', dict(zip(SUPERS, Y.sum(0).astype(int))))
+    text_ids, uniq_texts = pd.factorize(pd.Series(texts))
+    P('unique texts', len(uniq_texts), '| example:', texts[0], '||', texts[min(10, len(texts) - 1)])
 
     from transformers import AutoTokenizer
     tok = AutoTokenizer.from_pretrained(a.text_model)
-    enc = tok(texts, padding=False, truncation=True, max_length=a.max_len)['input_ids']
-    P('text token len: mean', np.mean([len(x) for x in enc]).round(1), 'max', max(len(x) for x in enc))
+    enc_u = tok(list(uniq_texts), padding=False, truncation=True, max_length=a.max_len)['input_ids']
+    enc = [enc_u[k] for k in text_ids]          # tokenise each distinct report once
+    P('text token len: mean', np.mean([len(x) for x in enc_u]).round(1), 'max', max(len(x) for x in enc_u))
 
     ecg_enc = ResNetECGEncoder() if a.ecg_arch == 'resnet18' else ECGEncoder(n_layers=a.ecg_layers)
     ecg_enc.grad_ckpt = a.ckpt
@@ -473,8 +523,9 @@ def main_train(a):
         g['lr'] = g['base_lr']
     opt = torch.optim.AdamW(groups, weight_decay=a.wd)
 
-    loader = torch.utils.data.DataLoader(ECGSet(sig, tr, train=True), batch_size=a.bs, shuffle=True,
-                                         num_workers=0, drop_last=True)
+    loader = torch.utils.data.DataLoader(ECGSet(sig_src, tr, train=True), batch_size=a.bs, shuffle=True,
+                                         num_workers=a.num_workers, persistent_workers=a.num_workers > 0,
+                                         pin_memory=a.num_workers > 0, drop_last=True)
     steps_per_epoch = len(loader)
     total = a.epochs * steps_per_epoch
     warm = int(a.warmup * steps_per_epoch)
@@ -503,9 +554,9 @@ def main_train(a):
         fva, pva = embed_ecg(model, sig, va)
         tva = embed_texts(model, tok, [texts[i] for i in va])
         with torch.no_grad():
-            vl = []
-            for i in range(0, len(va) - a.bs + 1, a.bs):
-                vl.append(clip_loss(pva[i:i + a.bs], tva[i:i + a.bs], model.temperature.detach().cpu()).item())
+            vl, vb = [], min(a.bs, len(va))        # batches of the training size (fewer if the val set is tiny)
+            for i in range(0, len(va) - vb + 1, vb):
+                vl.append(clip_loss(pva[i:i + vb], tva[i:i + vb], model.temperature.detach().cpu()).item())
         r['val_clip_loss'] = round(float(np.mean(vl)), 4)
         # ECG->text retrieval over unique val texts: is the true report ranked top-1 / top-5?
         uniq, inv = np.unique([texts[i] for i in va], return_inverse=True)
@@ -513,8 +564,10 @@ def main_train(a):
         rank = (pva @ tu.T).argsort(1, descending=True)
         r['val_e2t_R@1'] = round(float((rank[:, 0].numpy() == inv).mean()), 4)
         r['val_e2t_R@5'] = round(float((rank[:, :5].numpy() == inv[:, None]).any(1).mean()), 4)
-        # zero-shot on val (cheap) and test
-        for split, idx, proj in [('val', va, pva)] + ([('test', te, None)] if full else []):
+        if a.select_on == 'merl':
+            r['val_merl_zs'], r['val_merl_zs_tasks'] = merl_val_zero_shot(model, tok, a.merl_tasks.split(','))
+        # zero-shot on val (cheap) and test -- PTB-XL superclass labels, PTB-XL mode only
+        for split, idx, proj in ([] if a.dataset == 'mimic' else [('val', va, pva)] + ([('test', te, None)] if full else [])):
             if proj is None:
                 fte, proj = embed_ecg(model, sig, idx)
             Ys = Y[idx]
@@ -530,7 +583,7 @@ def main_train(a):
                     r[key + '_f1'] = round(f1, 4)
                     if split == 'test':
                         r[key + '_per_class_auc'] = per
-        if full:
+        if full and a.dataset == 'ptbxl':
             ftr, _ = embed_ecg(model, sig, tr if len(tr) <= 20000 else tr[:20000])
             r['linear_probe'] = linear_probe(ftr, Y[tr], fva, Y[va], fte, Y[te])
         r['eval_sec'] = round(time.time() - t0, 1)
@@ -544,10 +597,15 @@ def main_train(a):
     if a.eval_init:
         evaluate('init', full=True)
 
-    step = 0
-    best = -1
+    step, best, start_ep = 0, -1, 0
+    last_path = os.path.join(out_dir, 'last.pt')
+    if a.resume and os.path.exists(last_path):
+        ck = torch.load(last_path, map_location=DEVICE, weights_only=False)
+        model.load_state_dict(ck['model']); opt.load_state_dict(ck['opt'])
+        step, best, start_ep = ck['step'], ck['best'], ck['epoch']
+        P(f'RESUMED from {last_path}: epoch {start_ep}, step {step}, best {best:.4f}')
     t_start = time.time()
-    for ep in range(a.epochs):
+    for ep in range(start_ep, a.epochs):
         model.train()
         t0 = time.time(); losses = []; skipped = 0
         for x, ii in loader:
@@ -580,13 +638,16 @@ def main_train(a):
         P(f'EPOCH {ep+1} train_loss {np.mean(losses):.4f} skipped {skipped} time {(time.time()-t0)/60:.1f}min')
         full = (ep + 1 == a.epochs) or (a.full_every and (ep + 1) % a.full_every == 0)
         r = evaluate(f'ep{ep+1}', full=full)
-        score = r['val_zs_scp_max_auc']
+        score = r['val_merl_zs'] if a.select_on == 'merl' else r['val_zs_scp_max_auc']
         if score > best:
             best = score
             torch.save(model.state_dict(), os.path.join(out_dir, 'best.pt'))
+            P(f'  new best ({a.select_on} validation zero-shot) {best:.4f} -> best.pt')
+        torch.save({'model': model.state_dict(), 'opt': opt.state_dict(), 'epoch': ep + 1, 'step': step, 'best': best},
+                   last_path)
         if a.max_steps and step >= a.max_steps:
             break
-    P(f'DONE total {(time.time()-t_start)/60:.1f}min best val_zs_scp_mean_auc {best:.4f}')
+    P(f'DONE total {(time.time()-t_start)/60:.1f}min best validation score ({a.select_on}) {best:.4f}')
     torch.save(model.ecg_encoder.state_dict(), os.path.join(out_dir, 'ecg_encoder_last.pt'))
 
 
@@ -624,9 +685,19 @@ if __name__ == '__main__':
     ap.add_argument('--posthoc', default='')
     ap.add_argument('--ecg_arch', default='fm', choices=['fm', 'resnet18'])
     ap.add_argument('--uma', type=int, default=0)
+    ap.add_argument('--dataset', default='ptbxl', choices=['ptbxl', 'mimic'])
+    ap.add_argument('--mimic_dir', default='', help='output folder of prepare_mimic.py')
+    ap.add_argument('--num_workers', type=int, default=0)
+    ap.add_argument('--val_max', type=int, default=5000, help='cap on MIMIC validation ECGs used for loss / retrieval')
+    ap.add_argument('--select_on', default='', choices=['', 'ptbxl', 'merl'],
+                    help="checkpoint selection: 'ptbxl' (PTB-XL superclass val) or 'merl' (mean val zero-shot over MERL tasks)")
+    ap.add_argument('--merl_tasks', default='ptbxl_super,ptbxl_sub,ptbxl_form,ptbxl_rhythm,csn,cpsc')
+    ap.add_argument('--resume', type=int, default=0)
     ap.add_argument('--uma_w', type=float, default=1.0)
     ap.add_argument('--exec_cmd', default='')
     a = ap.parse_args()
+    if not a.select_on:
+        a.select_on = 'merl' if a.dataset == 'mimic' else 'ptbxl'
     if a.cmd == 'cache':
         build_cache()
     else:

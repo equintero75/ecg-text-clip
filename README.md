@@ -26,6 +26,13 @@ MERL-inspired changes (MedCPT text encoder, ResNet18 backbone) raise zero-shot b
 Out of domain (CSN, CPSC2018) MERL keeps a clear zero-shot lead — see **[`results/MERL_COMPARISON.md`](results/MERL_COMPARISON.md)**
 for the full tables, ablations (frozen text encoder, UMA, backbone, epochs) and caveats.
 
+## Next: pre-training on MIMIC-IV-ECG (lab)
+
+Pipeline for the same ~800k ECG–report pairs MERL used (open access): resumable parallel download, preparation straight
+from the zip (patient-level split, leads reordered by name, MERL's report cleaning), memory-mapped training with
+checkpoint selection on MERL-validation zero-shot, resume, and evaluation — tested end to end on a 3k-record subset.
+Step-by-step guide: **[`docs/MIMIC_LAB.md`](docs/MIMIC_LAB.md)** · one script: [`lab/mimic_pipeline.ps1`](lab/mimic_pipeline.ps1).
+
 ## v2 results (PTB-XL test fold, macro AUROC over the 5 diagnostic superclasses)
 
 | Model | Zero-shot (no labelled ECGs) | Linear probe, 1 % labels | 10 % | 100 % |
@@ -72,6 +79,7 @@ Evaluation
 | [`src/merl_bench.py`](src/merl_bench.py), [`src/experiments_merl.txt`](src/experiments_merl.txt) | MERL benchmark (zero-shot + linear probe on 6 tasks) and the exact runs of the MERL comparison |
 | [`src/download_cpsc2018.py`](src/download_cpsc2018.py), [`src/merl_resnet1d.py`](src/merl_resnet1d.py) | CPSC2018 download; MERL's ResNet18 (MIT) |
 | [`merl_ref/`](merl_ref) | MERL's splits, CKEPE prompts and reference code (MIT licence) |
+| [`src/download_mimic_ecg.py`](src/download_mimic_ecg.py), [`src/prepare_mimic.py`](src/prepare_mimic.py), [`lab/`](lab), [`docs/MIMIC_LAB.md`](docs/MIMIC_LAB.md) | MIMIC-IV-ECG download / preparation, lab script and guide (`ecgclip.py --dataset mimic`) |
 | [`data/ptbxl_reports_en.csv`](data/ptbxl_reports_en.csv) | English translation of every PTB-XL report |
 | [`results/`](results) | Write-up, figures, per-run logs (`results.jsonl` = every evaluation, `log.txt` = training log) |
 

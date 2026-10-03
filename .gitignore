@@ -17,3 +17,4 @@ venv/
 merl_ref/ckpt/
 data/cpsc_2018/
 data/a-large-scale-*/
+data/mimic*/
