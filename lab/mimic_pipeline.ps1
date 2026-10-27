@@ -29,6 +29,8 @@ switch ($Step) {
     'setup' {
         # once: clone the repo next to the data and install the extra packages into ecgmm
         if (-not (Test-Path $Repo)) { git clone https://github.com/equintero75/ecg-text-clip $Repo }
+        # pinned versions (requirements.txt); torch first from the CUDA 12.8 index (supports the RTX 5090)
+        python -m pip install torch==2.11.0 --index-url https://download.pytorch.org/whl/cu128
         python -m pip install -r (Join-Path $Repo 'requirements.txt')
     }
     'download' {

@@ -1,11 +1,19 @@
-torch>=2.1
-transformers>=4.40
-wfdb>=4.1
-numpy
-pandas
-scipy
-scikit-learn>=1.5
-matplotlib
+# Exact versions used for every result in results/ (Python 3.10.11, Windows 11, CUDA 12.8).
+# Install torch FIRST from the CUDA index; a plain `pip install torch` gives the CPU-only build on Windows:
+#   pip install torch==2.11.0 --index-url https://download.pytorch.org/whl/cu128
+# Then: pip install -r requirements.txt   (torch==2.11.0 is then already satisfied by 2.11.0+cu128)
+# Full transitive snapshot of the environment: requirements-lock.txt
+torch==2.11.0
+transformers==5.17.0
+tokenizers==0.23.2
+huggingface_hub==1.32.0
+safetensors==0.8.0
+wfdb==4.3.1
+numpy==2.2.6
+pandas==2.3.3
+scipy==1.15.3
+scikit-learn==1.7.2
+matplotlib==3.10.9
 # only for src/translate_reports.py
-sentencepiece
-sacremoses
+sentencepiece==0.2.2
+sacremoses==0.2.0

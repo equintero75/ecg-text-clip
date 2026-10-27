@@ -15,6 +15,7 @@ Each step can be stopped and re-run safely.
 | Disk | **~140 GB free** on a fast SSD: 36.3 GB zip + ~93 GB prepared signal cache (+6 GB benchmark caches). The zip can be deleted after `prepare` |
 | RAM | 16 GB is enough — the 93 GB cache is read as a memory map |
 | Data already in the lab | PTB-XL and the CSN ("arrhythmia study") folder under `ECG LM\` (set `$Root` / the paths at the top of the script if they differ) |
+| Software | Python 3.10, versions pinned in `requirements.txt` (`-Step setup` installs them, torch 2.11.0 + CUDA 12.8) |
 | Licence | MIMIC-IV-ECG is **open access** (ODbL), no credentialing needed |
 
 ```powershell

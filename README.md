@@ -86,7 +86,8 @@ Evaluation
 ## Quick start
 
 ```bash
-pip install -r requirements.txt
+pip install torch==2.11.0 --index-url https://download.pytorch.org/whl/cu128   # GPU build first (CPU-only otherwise on Windows)
+pip install -r requirements.txt          # exact versions used for results/ (full snapshot: requirements-lock.txt)
 python src/download_ptbxl.py            # or download the zip from PhysioNet into data/
 ```
 
