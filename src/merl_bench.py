@@ -153,9 +153,9 @@ def zscore(x):
 
 class OursAdapter:
     """ECG-FM/ResNet CLIP model trained with ecgclip.py (z-score per lead, mean of 5-s windows)."""
-    def __init__(self, run_dir=None, random_init=False, seed=0):
+    def __init__(self, run_dir=None, random_init=False, seed=0, arch='fm'):
         from transformers import AutoTokenizer
-        args = {'text_model': 'emilyalsentzer/Bio_ClinicalBERT', 'ecg_arch': 'fm', 'uma': 0}
+        args = {'text_model': 'emilyalsentzer/Bio_ClinicalBERT', 'ecg_arch': arch, 'uma': 0}
         if run_dir:
             args.update(json.loads(open(os.path.join(run_dir, 'log.txt')).readline()[len('ARGS '):]))
         torch.manual_seed(seed)
@@ -258,16 +258,17 @@ def linear_probe(Xtr, Ytr, Xva, Yva, Xte, Yte, steps=400):
             loss.backward(); opt.step()
         with torch.no_grad():
             va = macro_auc(Yva, lin(xva).cpu().numpy())
-            te = macro_auc(Yte, lin(xte).cpu().numpy())
+            pte = lin(xte).cpu().numpy()
+            te = macro_auc(Yte, pte)
         if best is None or va > best[0]:
-            best = (va, te, wd)
-    return best
+            best = (va, te, wd, pte)
+    return best          # (val AUROC, test AUROC, L2, test logits of the chosen probe)
 
 
-def evaluate(adapter, tag, tasks):
+def evaluate(adapter, tag, tasks, force=False):
     os.makedirs(OUT, exist_ok=True)
     out_f = os.path.join(OUT, f'{tag}.json')
-    res = json.load(open(out_f)) if os.path.exists(out_f) else {}
+    res = json.load(open(out_f)) if os.path.exists(out_f) and not force else {}   # force: re-score every task
     for task in tasks:
         if task in res:
             continue
@@ -279,6 +280,8 @@ def evaluate(adapter, tag, tasks):
         emb = {p: adapter.embed(D.raw, np.asarray(idx), D.valid) for p, (idx, _) in D.parts.items()}
         Y = {p: y for p, (_, y) in D.parts.items()}
         r = {'n_test': int(len(Y['test'])), 'n_classes': len(D.labels)}
+        preds = {'y': Y['test'].astype(np.int8)}   # per-ECG test predictions for bootstrap CIs (src/stats_ci.py)
+        zs_test = {}
         if adapter.zero_shot:
             for name, prompts in prompt_sets(task, D.labels).items():
                 temb = {l: adapter.text(prompts[l]) for l in D.labels}
@@ -286,15 +289,24 @@ def evaluate(adapter, tag, tasks):
                     def scores(P):
                         return torch.stack([(P @ temb[l].T).max(1).values if agg == 'max'
                                             else P @ F.normalize(temb[l].mean(0), dim=-1) for l in D.labels], 1).numpy()
+                    St = scores(emb['test'][1])
                     r[f'zs_{name}_{agg}'] = {'val': macro_auc(Y['val'], scores(emb['val'][1])),
-                                             'test': macro_auc(Y['test'], scores(emb['test'][1]))}
+                                             'test': macro_auc(Y['test'], St)}
+                    zs_test[f'zs_{name}_{agg}'] = St
+            best_zs = max((k for k in r if k.startswith('zs_')), key=lambda k: r[k]['val'])
+            r['prompt_selected_on_val'] = best_zs
+            preds['zs_best'] = zs_test[best_zs].astype(np.float32)
+            preds['zs_ckepe'] = zs_test['zs_ckepe_mean'].astype(np.float32)
         Xtr = emb['train'][0]
         for ratio in [1, 10, 100]:
             sel = np.arange(len(Xtr)) if ratio == 100 else train_test_split(np.arange(len(Xtr)), train_size=ratio / 100, random_state=42)[0]
-            va, te, wd = linear_probe(Xtr[sel], Y['train'][sel], emb['val'][0], Y['val'], emb['test'][0], Y['test'])
+            va, te, wd, pte = linear_probe(Xtr[sel], Y['train'][sel], emb['val'][0], Y['val'], emb['test'][0], Y['test'])
             r[f'lp_{ratio}'] = {'val': va, 'test': te, 'wd': wd}
+            preds[f'lp_{ratio}'] = pte.astype(np.float32)
         r['sec'] = round(time.time() - t0, 1)
         res[task] = r
+        os.makedirs(os.path.join(OUT, 'preds', tag), exist_ok=True)
+        np.savez_compressed(os.path.join(OUT, 'preds', tag, f'{task}.npz'), **preds)
         json.dump(res, open(out_f, 'w'), indent=1)
         zs = {k: round(v['test'], 2) for k, v in r.items() if k.startswith('zs_')}
         print(f'[{tag}] {task}: LP {r["lp_1"]["test"]:.2f}/{r["lp_10"]["test"]:.2f}/{r["lp_100"]["test"]:.2f} ZS {zs} ({r["sec"]}s)', flush=True)
@@ -349,6 +361,7 @@ if __name__ == '__main__':
     ap.add_argument('--model', default='random')
     ap.add_argument('--tag', default='')
     ap.add_argument('--tasks', default=','.join(TASKS))
+    ap.add_argument('--force', type=int, default=0, help='ignore existing results for this tag and re-score')
     a = ap.parse_args()
     if a.cmd == 'cache':
         build_caches()
@@ -360,6 +373,7 @@ if __name__ == '__main__':
             ad = MerlAdapter(path)
         elif kind == 'ours':
             ad = OursAdapter(path)
-        else:
-            ad = OursAdapter(None, random_init=True)
-        evaluate(ad, a.tag or (os.path.basename(path.rstrip('/\\')) if path else 'random_init'), a.tasks.split(','))
+        else:   # 'random' (ECG-FM) or 'random:resnet18' -- untrained encoder, linear probe only
+            ad = OursAdapter(None, random_init=True, arch=path or 'fm')
+            path = ''
+        evaluate(ad, a.tag or (os.path.basename(path.rstrip('/\\')) if path else 'random_init'), a.tasks.split(','), force=bool(a.force))

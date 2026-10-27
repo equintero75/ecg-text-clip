@@ -15,16 +15,18 @@ pre-trained features for label-efficient downstream classification.
 Six tasks (PTB-XL super / sub / form / rhythm, CSN, CPSC2018), MERL's splits and released checkpoint, identical protocol
 ([`src/merl_bench.py`](src/merl_bench.py)); macro AUROC averaged over the six tasks:
 
-| Model | Pre-training pairs | Zero-shot | Linear probe 1 % | 10 % | 100 % |
-|---|---|---|---|---|---|
-| MERL (released checkpoint) | ~772k MIMIC-IV-ECG | **77.4** | 74.5 | 84.4 | **88.9** |
-| **This work, v3 (ResNet18 + MedCPT fine-tuned), 2 seeds** | 17k PTB-XL | **77.0** | 74.6 | 83.7 | 88.3 |
-| This work, v2 configuration | 17k PTB-XL | 72.8 | 73.5 | 84.4 | 88.1 |
-| Untrained encoder | – | – | 65.9 | 76.1 | 82.9 |
+| Model | Pre-training pairs | Zero-shot [95 % CI] | Zero-shot CSN + CPSC | Linear probe 1 % | 10 % | 100 % |
+|---|---|---|---|---|---|---|
+| MERL (released checkpoint) | ~772k MIMIC-IV-ECG | **77.4** [76.2, 78.2] | **79.8** | 74.6 | 84.4 | **88.9** |
+| **This work, v3 (ResNet18 + MedCPT fine-tuned), 3 seeds** | 17k PTB-XL | **77.0** [75.8, 78.3] | 74.7 | 75.0 | 83.9 | 87.8 |
+| This work, v2 configuration, 3 seeds | 17k PTB-XL | 73.2 [72.2, 74.1] | 71.0 | 74.7 | 84.2 | 88.2 |
+| Untrained ResNet18 | – | – | – | 66.8 | 75.0 | 81.9 |
 
-MERL-inspired changes (MedCPT text encoder, ResNet18 backbone) raise zero-shot by +4.2 to within 0.4 of MERL with ~45× less data.
-Out of domain (CSN, CPSC2018) MERL keeps a clear zero-shot lead — see **[`results/MERL_COMPARISON.md`](results/MERL_COMPARISON.md)**
-for the full tables, ablations (frozen text encoder, UMA, backbone, epochs) and caveats.
+95 % CIs from 2,000 paired bootstrap resamples of the test sets ([`src/stats_ci.py`](src/stats_ci.py)).
+MERL-inspired changes (MedCPT text encoder, ResNet18 backbone) raise zero-shot by +3.8 [+3.0, +4.8] over v2; v3 vs MERL
+is −0.4 [−1.3, +1.0], i.e. not distinguishable, with ~45× less data. Out of domain (CSN, CPSC2018) MERL keeps a clear
+zero-shot lead (−5.1 [−6.2, −3.8]). See **[`results/MERL_COMPARISON.md`](results/MERL_COMPARISON.md)** for the paired
+tests, ablations (frozen text encoder, UMA, backbone, epochs) and caveats, and [`results/merl_bench/STATS.md`](results/merl_bench/STATS.md) for every number.
 
 ## Next: pre-training on MIMIC-IV-ECG (lab)
 
@@ -76,7 +78,7 @@ Evaluation
 | [`src/translate_reports.py`](src/translate_reports.py) | Report cleaning + German cardiology glossary + MarianMT translation |
 | [`src/posthoc_eval.py`](src/posthoc_eval.py), [`src/summarize.py`](src/summarize.py), [`src/make_figures.py`](src/make_figures.py) | Prompt study, results table, figures |
 | [`src/download_ptbxl.py`](src/download_ptbxl.py) | Parallel download of PTB-XL (500 Hz records) from PhysioNet's AWS open-data mirror |
-| [`src/merl_bench.py`](src/merl_bench.py), [`src/experiments_merl.txt`](src/experiments_merl.txt) | MERL benchmark (zero-shot + linear probe on 6 tasks) and the exact runs of the MERL comparison |
+| [`src/merl_bench.py`](src/merl_bench.py), [`src/stats_ci.py`](src/stats_ci.py), [`src/experiments_merl.txt`](src/experiments_merl.txt) | MERL benchmark (zero-shot + linear probe on 6 tasks), bootstrap CIs / paired tests, and the exact runs of the MERL comparison |
 | [`src/download_cpsc2018.py`](src/download_cpsc2018.py), [`src/merl_resnet1d.py`](src/merl_resnet1d.py) | CPSC2018 download; MERL's ResNet18 (MIT) |
 | [`merl_ref/`](merl_ref) | MERL's splits, CKEPE prompts and reference code (MIT licence) |
 | [`src/download_mimic_ecg.py`](src/download_mimic_ecg.py), [`src/prepare_mimic.py`](src/prepare_mimic.py), [`lab/`](lab), [`docs/MIMIC_LAB.md`](docs/MIMIC_LAB.md) | MIMIC-IV-ECG download / preparation, lab script and guide (`ecgclip.py --dataset mimic`) |

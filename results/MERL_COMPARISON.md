@@ -21,6 +21,46 @@ _Run 2026-10-02/03 on an RTX 3060 Laptop GPU (6 GB). All numbers: macro AUROC (%
 
 **Important caveat.** Our models are pre-trained on PTB-XL training folds, so the four PTB-XL tasks are *in-domain* for us and *out-of-domain* for MERL. **CSN and CPSC2018 are out-of-domain for every model** and are the fair comparison.
 
+## Multi-seed results with 95 % confidence intervals (2026-10-27) — reference numbers
+
+Every configuration retrained with **3 seeds**; checkpoint selected on validation zero-shot of the **four PTB-XL tasks only**, so CSN and CPSC2018 are never used for any choice.
+Uncertainty: **2,000 paired bootstrap resamples of each test set**, the same resamples for every model, scores averaged over seeds before the AUROC (`src/stats_ci.py`; full tables, per-task numbers and all comparisons in [`merl_bench/STATS.md`](merl_bench/STATS.md)).
+The CIs cover test-set sampling; the spread between seeds is listed separately (SD of the 6-task mean: 0.3–0.7 zero-shot).
+
+| Model | n | Zero-shot, 6 tasks | Zero-shot, CSN + CPSC | LP 1 % | LP 10 % | LP 100 % |
+|---|---|---|---|---|---|---|
+| MERL, released checkpoint (~772k MIMIC pairs) | 1 | **77.4** [76.2, 78.2] | **79.8** [78.8, 80.7] | 74.6 [73.4, 76.2] | 84.4 [83.4, 85.7] | **88.9** [88.0, 90.1] |
+| **A6: ResNet18 + MedCPT fine-tuned (v3)** | 3 | **77.0** [75.8, 78.3] | 74.7 [73.8, 75.7] | 75.0 [73.7, 75.9] | 83.9 [82.9, 85.1] | 87.8 [87.0, 88.8] |
+| A7: ResNet18 + MedCPT **frozen** | 3 | 76.3 [75.2, 77.4] | 72.8 [71.9, 73.9] | 75.9 [74.6, 76.7] | 84.2 [83.2, 85.4] | 88.3 [87.4, 89.2] |
+| A1: ECG-FM + MedCPT fine-tuned | 3 | 75.3 [74.2, 76.2] | 72.1 [71.1, 73.2] | 75.5 [74.5, 76.7] | **84.5** [83.5, 85.7] | **88.9** [88.2, 89.7] |
+| A5: ResNet18 + Bio_ClinicalBERT | 3 | 75.1 [74.1, 76.1] | 71.9 [70.9, 72.9] | 74.8 [73.8, 75.9] | 83.3 [82.3, 84.7] | 87.7 [87.0, 88.6] |
+| A0: ECG-FM + Bio_ClinicalBERT (v2) | 3 | 73.2 [72.2, 74.1] | 71.0 [69.8, 72.0] | 74.7 [73.5, 75.9] | 84.2 [83.3, 85.2] | 88.2 [87.6, 89.0] |
+| Random init, ResNet18 | 1 | – | – | 66.8 [65.4, 68.2] | 75.0 [73.9, 76.3] | 81.9 [80.9, 83.3] |
+| Random init, ECG-FM | 1 | – | – | 65.9 [64.3, 67.2] | 76.1 [75.0, 77.3] | 82.8 [81.9, 83.7] |
+
+Zero-shot = prompt set chosen on validation. LP = linear probe (fraction of training labels).
+
+**Paired differences** (A − B, 6-task mean, [95 % CI]; p < 0.001 means none of the 2,000 resamples crossed zero):
+
+| Comparison | What it tests | Zero-shot | Zero-shot out-of-domain | LP 100 % |
+|---|---|---|---|---|
+| A6 − MERL | v3 vs MERL (45× more data) | −0.4 [−1.3, +1.0], p = 0.80 | **−5.1** [−6.2, −3.8], p < 0.001 | **−1.1** [−1.9, −0.3], p = 0.007 |
+| A6 − A7 | fine-tuned vs frozen text encoder | **+0.7** [+0.3, +1.3], p < 0.001 | **+1.8** [+1.3, +2.4], p < 0.001 | −0.5 [−0.9, −0.0], p = 0.049 |
+| A6 − A5 | MedCPT vs Bio_ClinicalBERT (ResNet18) | **+1.9** [+1.4, +2.6], p < 0.001 | **+2.8** [+2.1, +3.5], p < 0.001 | +0.1 [−0.3, +0.5], p = 0.60 |
+| A1 − A0 | MedCPT vs Bio_ClinicalBERT (ECG-FM) | **+2.1** [+1.4, +2.8], p < 0.001 | **+1.1** [+0.3, +2.0], p = 0.009 | +0.6 [+0.4, +0.9], p < 0.001 |
+| A6 − A1 | ResNet18 vs ECG-FM (MedCPT) | **+1.7** [+1.0, +2.5], p < 0.001 | **+2.6** [+2.0, +3.3], p < 0.001 | −1.0 [−1.7, −0.3], p = 0.011 |
+| A6 − A0 | v3 vs v2 | **+3.8** [+3.0, +4.8], p < 0.001 | **+3.7** [+2.8, +4.8], p < 0.001 | −0.4 [−1.0, +0.4], p = 0.27 |
+| A6 − random init | value of pre-training | – | – | **+6.0** [+4.8, +6.9], p < 0.001 (1 %: +8.2) |
+
+**Reading.**
+1. **Every v3 design choice improves zero-shot, and each gain is larger than test-set noise and seed spread:** MedCPT (+1.9 to +2.1, in both backbones), ResNet18 (+1.7), fine-tuning the text encoder (+0.7). Together, +3.8 over v2.
+2. **On the 6-task zero-shot average, v3 and MERL are statistically indistinguishable** (−0.4, CI includes 0), with ~45× less pre-training data. This parity is helped by the PTB-XL tasks, which are in-domain for us.
+3. **Out of domain, MERL is clearly better** (zero-shot −5.1, mostly CPSC: 83.9 vs 76.0). This is the gap MIMIC-IV-ECG pre-training in the lab has to close.
+4. **Linear probe is a different story:** the larger ECG-FM encoder (A1) is best at 10–100 % and ties MERL at 100 %; ResNet18 is better *aligned with text* but not a better *feature extractor*. Pre-training adds +6 to +9 points over a random encoder at every label fraction.
+5. The p values are not corrected for the ~35 comparisons in `STATS.md`; the conclusions above rest on differences whose CIs are far from zero, not on borderline p values (e.g. A6 − A7 at LP 100 %, p = 0.049, is not claimed).
+
+The sections below are the **earlier single-run results (2026-10-03)**, where the checkpoint was selected on validation zero-shot over all six tasks; where they differ, use the table above.
+
 
 ## Headline (averages over the six tasks)
 
